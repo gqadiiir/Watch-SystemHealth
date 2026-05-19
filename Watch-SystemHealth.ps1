@@ -1,7 +1,7 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Watch-SystemHealth.ps1 — Lightweight Windows system monitoring with email alerting.
+    Watch-SystemHealth.ps1 - Lightweight Windows system monitoring with email alerting.
 
 .DESCRIPTION
     Checks disk space, CPU usage, and the status of critical Windows services.
@@ -35,15 +35,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 1 — CONFIGURATION
+# -----------------------------------------------------------------------------
+# SECTION 1 - CONFIGURATION
 # Edit these values to match your environment.
 # You can also point -ConfigPath to a JSON file with the same keys.
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 
 $DefaultConfig = @{
 
-    # ── Email settings ────────────────────────────────────────────────────────
+    # -- Email settings --------------------------------------------------------
     Email = @{
         SmtpServer  = 'smtp.yourdomain.com'       # SMTP server hostname
         SmtpPort    = 587                          # 587 = TLS, 465 = SSL, 25 = plain
@@ -56,25 +56,25 @@ $DefaultConfig = @{
         Password    = ''
     }
 
-    # ── Disk space thresholds ─────────────────────────────────────────────────
+    # -- Disk space thresholds -------------------------------------------------
     Disk = @{
         # Alert when free space on any drive falls below this percentage
-        FreeSpaceWarningPct  = 20   # Warning level  — yellow alert
-        FreeSpaceCriticalPct = 10   # Critical level — red alert
+        FreeSpaceWarningPct  = 20   # Warning level  - yellow alert
+        FreeSpaceCriticalPct = 10   # Critical level - red alert
         # Drives to EXCLUDE from checks (e.g. optical drives, USB sticks)
         ExcludeDriveLetters  = @('D', 'E')
     }
 
-    # ── CPU usage thresholds ──────────────────────────────────────────────────
+    # -- CPU usage thresholds --------------------------------------------------
     CPU = @{
         # Samples averaged over SampleSeconds to smooth out short spikes
-        WarningPct   = 85    # Warning  — sustained high CPU
-        CriticalPct  = 95    # Critical — near-maxed CPU
+        WarningPct   = 85    # Warning  - sustained high CPU
+        CriticalPct  = 95    # Critical - near-maxed CPU
         SampleCount  = 3     # Number of samples to average
         SampleSeconds = 2    # Seconds between samples
     }
 
-    # ── Services to monitor ───────────────────────────────────────────────────
+    # -- Services to monitor ---------------------------------------------------
     # Add any service short name here. Alert fires if the service is not Running.
     Services = @(
         'Spooler'         # Print Spooler
@@ -88,7 +88,7 @@ $DefaultConfig = @{
         # 'TeamViewer'    # TeamViewer
     )
 
-    # ── Log settings ──────────────────────────────────────────────────────────
+    # -- Log settings ----------------------------------------------------------
     Log = @{
         Enabled  = $true
         Path     = "$PSScriptRoot\Logs\SystemHealth_{DATE}.log"
@@ -98,9 +98,9 @@ $DefaultConfig = @{
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 2 — LOAD EXTERNAL CONFIG (optional)
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# SECTION 2 - LOAD EXTERNAL CONFIG (optional)
+# -----------------------------------------------------------------------------
 
 function Merge-Config {
     param($Base, $Override)
@@ -128,9 +128,9 @@ if ($ConfigPath -and (Test-Path $ConfigPath)) {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 3 — LOGGING
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# SECTION 3 - LOGGING
+# -----------------------------------------------------------------------------
 
 $LogPath = $null
 
@@ -166,11 +166,11 @@ function Write-Log {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 4 — CHECK FUNCTIONS
+# -----------------------------------------------------------------------------
+# SECTION 4 - CHECK FUNCTIONS
 # Each function returns a [PSCustomObject] with:
 #   Category, Name, Status ('OK'|'WARN'|'CRIT'), Value, Threshold, Message
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 
 function Get-DiskChecks {
     $results = @()
@@ -203,7 +203,7 @@ function Get-DiskChecks {
                         else { "CRITICAL: Disk $($drive.Name):\ has only $freePct% free ($freeGB GB). Immediate action required." }
         }
 
-        Write-Log "Disk $($drive.Name):\ — $freePct% free ($freeGB/$totalGB GB) [$status]" -Level $(if ($status -eq 'OK') {'INFO'} elseif ($status -eq 'WARN') {'WARN'} else {'CRIT'})
+        Write-Log "Disk $($drive.Name):\ - $freePct% free ($freeGB/$totalGB GB) [$status]" -Level $(if ($status -eq 'OK') {'INFO'} elseif ($status -eq 'WARN') {'WARN'} else {'CRIT'})
     }
     return $results
 }
@@ -248,7 +248,7 @@ function Get-ServiceChecks {
             $status = if ($svc.Status -eq 'Running') { 'OK' } else { 'CRIT' }
             $displayName = $svc.DisplayName
 
-            Write-Log "Service '$displayName' ($svcName) — $($svc.Status) [$status]" -Level $(if ($status -eq 'OK') {'INFO'} else {'CRIT'})
+            Write-Log "Service '$displayName' ($svcName) - $($svc.Status) [$status]" -Level $(if ($status -eq 'OK') {'INFO'} else {'CRIT'})
 
             $results += [PSCustomObject]@{
                 Category  = 'Service'
@@ -275,9 +275,9 @@ function Get-ServiceChecks {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 5 — HTML EMAIL BUILDER
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# SECTION 5 - HTML EMAIL BUILDER
+# -----------------------------------------------------------------------------
 
 function Build-HtmlReport {
     param([array]$Checks, [string]$Hostname, [string]$Timestamp)
@@ -384,9 +384,9 @@ function Build-HtmlReport {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 6 — EMAIL SENDER
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# SECTION 6 - EMAIL SENDER
+# -----------------------------------------------------------------------------
 
 function Send-AlertEmail {
     param([string]$HtmlBody, [string]$Hostname)
@@ -420,18 +420,18 @@ function Send-AlertEmail {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 7 — MAIN EXECUTION
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# SECTION 7 - MAIN EXECUTION
+# -----------------------------------------------------------------------------
 
 function Main {
     $hostname  = $env:COMPUTERNAME
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 
     Initialize-Log
-    Write-Log "═══════════════════════════════════════════" -Level INFO
+    Write-Log "===========================================" -Level INFO
     Write-Log "Watch-SystemHealth started on $hostname" -Level INFO
-    Write-Log "═══════════════════════════════════════════" -Level INFO
+    Write-Log "===========================================" -Level INFO
 
     # Run all checks
     $allChecks = @()
@@ -440,15 +440,15 @@ function Main {
     $allChecks += Get-ServiceChecks
 
     # Summary to console
-    Write-Host "`n=== SYSTEM HEALTH RESULTS — $hostname ===" -ForegroundColor Cyan
+    Write-Host "`n=== SYSTEM HEALTH RESULTS - $hostname ===" -ForegroundColor Cyan
     $allChecks | Format-Table Category, Name, Value, Status -AutoSize
 
     # Count issues
     $issues = $allChecks | Where-Object { $_.Status -ne 'OK' }
 
-    if ($issues.Count -gt 0) {
-        Write-Log "$($issues.Count) issue(s) found. Sending alert email..." -Level WARN
-        Write-Host "`n$($issues.Count) issue(s) detected. Sending alert email..." -ForegroundColor Yellow
+    if (@($issues).Count -gt 0) {
+        Write-Log "$(@($issues).Count) issue(s) found. Sending alert email..." -Level WARN
+        Write-Host "`n$(@($issues).Count) issue(s) detected. Sending alert email..." -ForegroundColor Yellow
 
         $html = Build-HtmlReport -Checks $allChecks -Hostname $hostname -Timestamp $timestamp
         Send-AlertEmail -HtmlBody $html -Hostname $hostname
